@@ -1,0 +1,497 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>黑白影像集</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background: #f9f9f9;
+  font-family: "SimSun", "宋体", serif; /* 仿宋/宋体 */
+  color: #222;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================
+   上传区域（极简黑白风格）
+============================= */
+.upload-section {
+  max-width: 1000px;
+  margin: 0 auto 20px;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.upload-title {
+  text-align: center;
+  font-size: 20px; /* 适配post·瞬间的字号 */
+  letter-spacing: 2px; /* 增加字间距更有高级感 */
+  color: #333;
+  font-weight: 500; /* 轻微加粗突出标题 */
+}
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+.upload-input {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  font-family: "SimSun", "宋体", serif;
+  font-size: 14px;
+}
+#photo-file {
+  border: 1px dashed #999;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+#photo-file:hover {
+  border-color: #333;
+  background: #f5f5f5;
+}
+#photo-desc {
+  min-height: 80px;
+  resize: none;
+}
+.upload-btn {
+  padding: 10px 20px;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: "SimSun", "宋体", serif;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.upload-btn:hover {
+  background: #000;
+}
+
+/* ============================
+   瀑布流照片墙（黑白极简）
+============================= */
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 12px 30px;
+}
+.page-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: normal;
+  letter-spacing: 2px;
+  margin-bottom: 30px;
+  color: #111;
+}
+
+/* 瀑布流核心样式 */
+.photo-masonry {
+  column-count: 3; /* 电脑端3列 */
+  column-gap: 12px;
+}
+/* 响应式适配 */
+@media (max-width: 768px) {
+  .photo-masonry {
+    column-count: 2; /* 平板/大屏手机2列 */
+  }
+}
+@media (max-width: 480px) {
+  .photo-masonry {
+    column-count: 1; /* 小屏手机1列 */
+  }
+}
+
+.photo-item {
+  break-inside: avoid; /* 防止元素被列截断 */
+  margin-bottom: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+/* 照片容器 - 自适应高度 */
+.photo-img-wrap {
+  width: 100%;
+  overflow: hidden;
+}
+.photo-item img {
+  width: 100%;
+  display: block;
+  filter: grayscale(100%); /* 黑白 */
+  opacity: 0.92;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.photo-item:hover img {
+  opacity: 1;
+  transform: scale(1.02);
+}
+/* 日期标签 - 极简悬浮样式 */
+.photo-date {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+}
+
+/* ============================
+   全屏大图预览（滑动翻页）
+============================= */
+.preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: #000;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.preview.show {
+  display: flex;
+}
+
+/* 大图容器 */
+.slide-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  height: 75vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.slide-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: grayscale(100%);
+}
+
+/* 配文+日期（居中优雅） */
+.caption-wrap {
+  margin-top: 24px;
+  color: #eee;
+  font-size: 16px;
+  line-height: 1.7;
+  text-align: center;
+  max-width: 90%;
+}
+.caption {
+  white-space: pre-line;
+  margin-bottom: 8px;
+}
+.preview-date {
+  font-size: 14px;
+  color: #aaa;
+  letter-spacing: 1px;
+}
+
+/* 左右箭头 */
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  user-select: none;
+  z-index: 10;
+}
+.arrow.prev {
+  left: 10px;
+}
+.arrow.next {
+  right: 10px;
+}
+
+/* 关闭按钮 */
+.close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+/* 滑动触摸区域 */
+.touch-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 提示样式 */
+.toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  display: none;
+  z-index: 10000;
+}
+</style>
+</head>
+
+<body>
+<!-- 上传区域（修改为post·瞬间） -->
+<div class="upload-section">
+  <div class="upload-title">post·瞬间</div>
+  <form class="upload-form" id="upload-form">
+    <input type="file" class="upload-input" id="photo-file" accept="image/*" required>
+    <textarea class="upload-input" id="photo-desc" placeholder="写下此刻的心情..."></textarea>
+    <button type="submit" class="upload-btn">发布</button>
+  </form>
+</div>
+
+<!-- 首页（瀑布流） -->
+<div class="container">
+  <h2 class="page-title">黑白影像集</h2>
+  <div class="photo-masonry" id="masonry"></div>
+</div>
+
+<!-- 全屏大图预览（滑动） -->
+<div class="preview" id="preview">
+  <div class="close" id="close">×</div>
+  <div class="slide-wrap">
+    <div class="arrow prev" id="prev">‹</div>
+    <img class="slide-img" id="slideImg">
+    <div class="arrow next" id="next">›</div>
+    <div class="touch-area" id="touchArea"></div>
+  </div>
+  <div class="caption-wrap">
+    <div class="caption" id="caption"></div>
+    <div class="preview-date" id="previewDate"></div>
+  </div>
+</div>
+
+<!-- 提示框 -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ======================
+// 核心数据（含默认示例+用户上传+日期）
+// ======================
+// 从本地存储读取已上传的照片（刷新不丢失）
+let photos = JSON.parse(localStorage.getItem('blackWhiteMasonry')) || [
+  {
+    url: "https://picsum.photos/800/1000?random=1",
+    text: "人间烟火，山河远阔。\n无一是你，无一不是你。",
+    date: "2026-02-01" // 日期格式：YYYY-MM-DD
+  },
+  {
+    url: "https://picsum.photos/800/1200?random=2",
+    text: "晚风轻踩云朵，月亮在贩售快乐。",
+    date: "2026-02-05"
+  },
+  {
+    url: "https://picsum.photos/800/800?random=3",
+    text: "慢慢来，谁还没有一个努力的过程。",
+    date: "2026-02-08"
+  }
+];
+
+let currentIndex = 0;
+// DOM元素
+const masonry = document.getElementById('masonry');
+const preview = document.getElementById('preview');
+const slideImg = document.getElementById('slideImg');
+const caption = document.getElementById('caption');
+const previewDate = document.getElementById('previewDate');
+const prev = document.getElementById('prev');
+const next = document.getElementById('next');
+const close = document.getElementById('close');
+const touchArea = document.getElementById('touchArea');
+const uploadForm = document.getElementById('upload-form');
+const photoFile = document.getElementById('photo-file');
+const photoDesc = document.getElementById('photo-desc');
+const toast = document.getElementById('toast');
+
+// ======================
+// 工具函数
+// ======================
+// 显示提示
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => {
+    toast.style.display = 'none';
+  }, 2000);
+}
+
+// 文件转Base64（本地存储用）
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
+// 获取当前日期（YYYY-MM-DD）
+function getCurrentDate() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// 保存数据到本地存储
+function savePhotos() {
+  localStorage.setItem('blackWhiteMasonry', JSON.stringify(photos));
+}
+
+// ======================
+// 核心功能
+// ======================
+// 渲染瀑布流照片墙
+function renderMasonry() {
+  masonry.innerHTML = '';
+  // 按日期倒序排列（最新的在前）
+  const sortedPhotos = [...photos].sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  sortedPhotos.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-item';
+    // 瀑布流结构：图片容器 + 日期标签
+    div.innerHTML = `
+      <div class="photo-img-wrap">
+        <img src="${item.url}" alt="黑白影像">
+      </div>
+      <div class="photo-date">${item.date}</div>
+    `;
+    // 点击打开预览
+    div.onclick = () => {
+      currentIndex = photos.findIndex(p => p.url === item.url);
+      showSlide();
+    };
+    masonry.appendChild(div);
+  });
+}
+
+// 显示当前大图 + 配文 + 日期
+function showSlide() {
+  const item = photos[currentIndex];
+  slideImg.src = item.url;
+  caption.innerText = item.text;
+  previewDate.innerText = `📅 ${item.date}`;
+  preview.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+// 关闭预览
+function closePreview() {
+  preview.classList.remove('show');
+  document.body.style.overflow = 'auto';
+}
+
+// 切换上下张
+function goPrev() {
+  currentIndex = (currentIndex - 1 + photos.length) % photos.length;
+  showSlide();
+}
+function goNext() {
+  currentIndex = (currentIndex + 1) % photos.length;
+  showSlide();
+}
+
+// 处理上传
+async function handleUpload(e) {
+  e.preventDefault();
+  if (!photoFile.files[0]) {
+    showToast('请选择要发布的瞬间'); // 优化提示文字
+    return;
+  }
+
+  try {
+    // 将本地文件转为Base64
+    const base64Url = await fileToBase64(photoFile.files[0]);
+    // 添加到照片数组（带当前日期）
+    photos.unshift({
+      url: base64Url,
+      text: photoDesc.value.trim() || '无配文',
+      date: getCurrentDate()
+    });
+    // 保存到本地存储
+    savePhotos();
+    // 重新渲染瀑布流
+    renderMasonry();
+    // 重置表单
+    uploadForm.reset();
+    showToast('发布成功 ✨'); // 优化提示文字
+  } catch (err) {
+    console.error('发布失败:', err);
+    showToast('发布失败，请重试'); // 优化提示文字
+  }
+}
+
+// ======================
+// 事件绑定
+// ======================
+// 触摸滑动（手机端）
+let startX = 0;
+touchArea.addEventListener('touchstart', e => {
+  startX = e.changedTouches[0].clientX;
+});
+touchArea.addEventListener('touchend', e => {
+  const endX = e.changedTouches[0].clientX;
+  const diff = endX - startX;
+  if (Math.abs(diff) > 50) {
+    diff > 0 ? goPrev() : goNext();
+  }
+});
+
+// 按钮事件
+prev.onclick = goPrev;
+next.onclick = goNext;
+close.onclick = closePreview;
+uploadForm.onsubmit = handleUpload;
+
+// ======================
+// 初始化
+// ======================
+renderMasonry();
+</script>
+</body>
+</html>
